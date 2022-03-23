@@ -1,0 +1,97 @@
+---
+title: "Imperial County POC Map"
+author: "Brandyn Ruiz"
+output: html_document
+---
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+library(tigris)
+library(mapview)
+library(tidyverse)
+library(tmap)
+library(rosm)
+library(sf)
+library(tidycensus)
+```
+
+```{r include=FALSE, echo=FALSE}
+imperial_blocks <- blocks(state = "CA", county = "Imperial")
+plot(imperial_blocks$geometry)
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+imperial_race <- get_decennial(
+  geography = "block",
+  state = "CA",
+  county = "Imperial",
+  variables = c(Hispanic = "P2_002N", White = "P2_005N", Black = "P2_006N",
+                Native = "P2_007N"),
+  summary_var = "P2_001N",
+  year = 2020,
+  geometry = TRUE
+) %>%
+  mutate(percent = 100 * (value / summary_value))
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+imperial_poc <- imperial_race%>%
+  group_by(GEOID)%>%
+  filter(variable == "White")%>%
+  summarize(POC = (summary_value - value), summary_value = summary_value)%>%
+  gather(key = "variable", value = "value", 2)%>%
+  mutate(percTest = 100 * (value / summary_value),
+         percent = ifelse(is.nan(percTest), 0, percTest))
+
+```
+
+```{r Static Map, include=FALSE, echo=FALSE}
+tm_shape(imperial_poc)+
+    tm_polygons(col = "percent", title = "2020 US Census")+
+    tm_layout(title = "Percent POC\nby Census Block", frame = FALSE,
+              legend.outside = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+imperial_poc$geometry <- st_cast(imperial_poc$geometry, "MULTIPOLYGON")
+
+basemap <- osm.raster(
+  st_bbox(imperial_poc),
+  zoom = 10,
+  type = "cartolight",
+  crop = TRUE
+)
+```
+
+```{r Static Map Large Scale, include=FALSE, echo=FALSE}
+tm_shape(basemap) + 
+    tm_rgb()+
+    tm_shape(imperial_poc)+
+    tm_polygons(col = "percent", title = "2020 US Census",
+                alpha = 0.4)+
+    tm_layout(title = "Percent POC\nby Census Block", frame = FALSE,
+              legend.outside = TRUE)+ 
+    tm_scale_bar(position = c("left", "BOTTOM"))+ 
+    tm_compass(position = c("right", "top"))
+```
+
+```{r POC Leaflet Map, warning=FALSE, message=FALSE, echo=FALSE, fig.width=10, fig.height=8}
+tmap_mode("view")
+
+tmap_options(basemaps = c("Esri.WorldTopoMap", "Stamen.TonerLite", #<<
+                          "CartoDB.DarkMatter"),
+             check.and.fix = TRUE)
+
+imperial_erase <- imperial_poc%>%
+  erase_water(area_threshold = 0.9)
+
+tmap_obj <- tm_shape(imperial_erase)+
+  tm_polygons(col = "percent",
+              title = "Percent POC <br>by Census Block",
+              alpha = 0.4,
+              id = "NAME")
+
+# tmap_save(tmap_obj, "imperial_poc.html")
+tmap_obj
+```
+
+

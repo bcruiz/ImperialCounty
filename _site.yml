@@ -1,0 +1,10 @@
+name: "Ag Burning Project"
+output_dir: "."
+navbar:
+  title: "Imperial County"
+  left:
+    - text: "Census Block"
+      href: index.html
+output:
+  html_document:
+  theme: cosmo
