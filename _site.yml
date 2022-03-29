@@ -5,6 +5,8 @@ navbar:
   left:
     - text: "Census Block"
       href: index.html
+    - text: "Interactive Map"
+      href: LocationLeafletMap.html
 output:
   html_document:
     theme: cosmo

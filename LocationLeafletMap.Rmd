@@ -1,0 +1,50 @@
+---
+title: "Interactive Location Map"
+author: "Brandyn Ruiz"
+output: html_document
+---
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(tmap)
+library(rosm)
+library(sf)
+library(leaflet)
+library(leaflet.extras)
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+ExcelwPDF_Final <- read_csv("C:/Users/bcruiz/OneDrive - University of Southern California/ImperialBurning/Data/ExcelwPDF_Final.csv")%>%
+  filter(Acres != 710)
+
+# stats::quantile(ExcelwPDF_Final$Acres, probs = seq(0, 1, 0.25))
+
+AgBurn_sf <- st_as_sf(ExcelwPDF_Final, coords = c("LON", "LATI"), crs = 4326,
+         remove = FALSE)
+
+AgBurn_sf <- AgBurn_sf%>%
+  mutate(AcreageCat = case_when(Acres < 36 ~ "1-36",
+                                Acres < 69 ~ "37-69",
+                                Acres < 79 ~ "70-79",
+                                Acres < 246 ~ "80 - 245"))
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.width=10, fig.height=8}
+agburn_elem <- tm_shape(AgBurn_sf)+
+  tm_dots(col = "red", alpha = 0.4, id = "", size = "Acres",
+          popup.vars = c("Acres: " = "Acres", "Crop: " = "Crop", "Date: " = "Date"))
+  # tm_bubbles(col = "AcreageCat", alpha = 0.4, id = "Acres")
+
+tmap_mode("view")
+
+tmap_options(basemaps = c("Esri.WorldTopoMap", "Stamen.TonerLite", #<<
+                          "CartoDB.DarkMatter", "OpenStreetMap.Mapnik"),
+             check.and.fix = TRUE)
+agburn_elem%>%  
+  tmap_leaflet() %>%
+  addProviderTiles("Stamen.Toner") %>% 
+  leaflet.extras::addSearchOSM(options = searchOptions(collapsed = FALSE))
+
+```
+
+Explore with the different map tiles and enter any address in the search bar to see the proximity to each agriculture burn. Each agriculture burn is scaled to acreage, the larger the red marker the bigger the burn. **Clicking** on the burns will reveal more information about *acreage*, type of *crop* burned, and the *date* of burn
