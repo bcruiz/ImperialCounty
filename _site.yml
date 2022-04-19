@@ -5,7 +5,7 @@ navbar:
   left:
     - text: "Census Block"
       href: index.html
-    - text: "Interactive Map"
+    - text: "How Close is Too Close?"
       href: LocationLeafletMap.html
 output:
   html_document:
